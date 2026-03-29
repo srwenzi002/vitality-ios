@@ -225,38 +225,35 @@ private enum BlindboxBundleAssetResolver {
     }
 
     private static func assetName(from imageSource: String?) -> String? {
-        guard
-            let imageSource,
-            let url = URL(string: imageSource),
-            url.isFileURL
-        else {
+        guard let imageSource else { return nil }
+
+        let lowered = imageSource.lowercased()
+
+        let prefix: String?
+        if lowered.contains("/series1/") {
+            prefix = "Series1"
+        } else if lowered.contains("/series2/") {
+            prefix = "Series2"
+        } else {
             return nil
         }
 
-        let path = url.path.lowercased()
-        let fileName = url.deletingPathExtension().lastPathComponent
-        let originalFileName = url.lastPathComponent
-
-        let prefix: String?
-        if path.contains("/series1/") {
-            prefix = "Series1"
-        } else if path.contains("/series2/") {
-            prefix = "Series2"
-        } else {
-            prefix = nil
+        // file:// URL — use original filename for special cases (legacy paths)
+        if let url = URL(string: imageSource), url.isFileURL {
+            let originalFileName = url.lastPathComponent
+            if originalFileName == "盲盒系列.PNG" { return prefix! + "Cover" }
+            if originalFileName == "背面.PNG"   { return prefix! + "Back" }
+            return "\(prefix!)_\(url.deletingPathExtension().lastPathComponent)"
         }
 
-        guard let prefix else { return nil }
+        // Relative/HTTP path — derive asset name from filename
+        let fileName = (imageSource as NSString).lastPathComponent
+        let baseName = (fileName as NSString).deletingPathExtension.lowercased()
+        if baseName == "cover" { return prefix! + "Cover" }
+        if baseName == "back"  { return prefix! + "Back" }
+        if !baseName.isEmpty   { return "\(prefix!)_\(baseName)" }
 
-        if originalFileName == "盲盒系列.PNG" {
-            return prefix + "Cover"
-        }
-
-        if originalFileName == "背面.PNG" {
-            return prefix + "Back"
-        }
-
-        return "\(prefix)_\(fileName)"
+        return nil
     }
 
     private static func normalizedTitle(_ title: String) -> String {
@@ -264,7 +261,11 @@ private enum BlindboxBundleAssetResolver {
     }
 }
 
-func normalizedBlindBoxURL(_ source: String?) -> URL? {
+/// Resolves a blind box image source string to a URL.
+/// - Absolute HTTP/HTTPS URLs are returned as-is.
+/// - Paths starting with "/" are treated as relative to the backend server host.
+/// - Local `file://` paths and other schemes are ignored (returns nil; caller shows placeholder).
+func normalizedBlindBoxURL(_ source: String?, serverHost: String = "http://127.0.0.1:8080/api") -> URL? {
     guard let source, !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
         return nil
     }
@@ -274,7 +275,7 @@ func normalizedBlindBoxURL(_ source: String?) -> URL? {
     }
 
     if source.hasPrefix("/") {
-        return URL(fileURLWithPath: source)
+        return URL(string: serverHost + source)
     }
 
     return nil
@@ -285,13 +286,14 @@ struct BlindBoxArtworkView: View {
     let subtitle: String?
     let imageURL: String?
     let accent: Color
+    var contentMode: ContentMode = .fill
 
     var body: some View {
         Group {
             if let localImage = BlindboxBundleAssetResolver.coverImage(title: title, imageSource: imageURL) {
                 Image(uiImage: localImage)
                     .resizable()
-                    .scaledToFill()
+                    .aspectRatio(contentMode: contentMode)
             } else if let imageURL = normalizedBlindBoxURL(imageURL),
                imageURL.pathExtension.lowercased() != "svg" {
                 AsyncImage(url: imageURL) { phase in
@@ -299,7 +301,7 @@ struct BlindBoxArtworkView: View {
                     case .success(let image):
                         image
                             .resizable()
-                            .scaledToFill()
+                            .aspectRatio(contentMode: contentMode)
                     default:
                         placeholder
                     }

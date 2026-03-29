@@ -122,7 +122,7 @@ CREATE TABLE card_designs (
     card_code VARCHAR(50) UNIQUE NOT NULL,
     blindbox_series_id INTEGER NOT NULL,
     name VARCHAR(100) NOT NULL,
-    rarity VARCHAR(10) NOT NULL CHECK (rarity IN ('N', 'R', 'SR', 'SSR')),
+    rarity VARCHAR(10) NOT NULL CHECK (rarity IN ('n', 'r', 'sr', 'ssr')),
     front_image_url VARCHAR(500),
     back_image_url VARCHAR(500),
     description TEXT,

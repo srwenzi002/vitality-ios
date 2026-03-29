@@ -3,6 +3,7 @@ import SwiftUI
 struct BackpackView: View {
     @EnvironmentObject private var store: VitalityStore
     @State private var selection = 0
+    @State private var selectedBox: BlindBox?
 
     private var uniqueSeries: [String] {
         Array(Set(store.collectibles.map(\.series))).sorted()
@@ -12,15 +13,6 @@ struct BackpackView: View {
         store.collectibles.filter(\.isFavorite).count
     }
 
-    private var totalValuation: Int {
-        store.collectibles.reduce(0) { $0 + $1.chainValue }
-    }
-
-    private var groupedSeries: [(name: String, items: [Collectible])] {
-        Dictionary(grouping: store.collectibles, by: \.series)
-            .map { (name: $0.key, items: $0.value.sorted(by: { $0.chainValue > $1.chainValue })) }
-            .sorted { $0.items.count > $1.items.count }
-    }
 
     var body: some View {
         ZStack {
@@ -39,6 +31,13 @@ struct BackpackView: View {
 
                     if selection == 0 {
                         overviewSection
+                            .task(id: "overview") {
+                                await withTaskGroup(of: Void.self) { group in
+                                    for box in store.blindBoxes where box.previewCards.isEmpty {
+                                        group.addTask { _ = await store.loadBlindBoxDetail(for: box) }
+                                    }
+                                }
+                            }
                     } else if selection == 1 {
                         collectedSection
                     } else {
@@ -51,6 +50,10 @@ struct BackpackView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .sheet(item: $selectedBox) { box in
+            BlindBoxCollectionView(box: box)
+                .environmentObject(store)
+        }
     }
 
     private var profileHeader: some View {
@@ -108,128 +111,152 @@ struct BackpackView: View {
     }
 
     private var overviewSection: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            FrostCard {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("资产总览")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("盲盒图鉴")
 
-                    HStack(spacing: 12) {
-                        overviewMetric(title: "总估值", value: "\(totalValuation)", subtitle: "模拟估值")
-                        overviewMetric(title: "钥匙库存", value: "\(store.profile.keys)", subtitle: "可继续开箱")
-                    }
+            ForEach(store.blindBoxes) { box in
+                let ownedCount = ownedCardCount(for: box)
+                let total = box.previewCards.count
 
-                    HStack(spacing: 12) {
-                        overviewMetric(title: "元气币", value: "\(store.profile.vitalityCoins)", subtitle: "账户可用")
-                        overviewMetric(title: "交易记录", value: "\(store.activities.count)", subtitle: "最近动态")
-                    }
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 12) {
-                sectionTitle("系列总览")
-
-                ForEach(groupedSeries, id: \.name) { group in
+                Button { selectedBox = box } label: {
                     FrostCard {
-                        HStack(alignment: .center, spacing: 14) {
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(seriesColor(for: group.name).opacity(0.18))
-                                .frame(width: 56, height: 72)
-                                .overlay(
-                                    Image(systemName: "shippingbox.circle.fill")
-                                        .font(.system(size: 24, weight: .bold))
-                                        .foregroundStyle(seriesColor(for: group.name))
-                                )
+                        HStack(spacing: 14) {
+                            BlindBoxArtworkView(
+                                title: box.title,
+                                subtitle: nil,
+                                imageURL: box.imageURL,
+                                accent: VitalityTheme.cyan,
+                                contentMode: .fill
+                            )
+                            .frame(width: 64, height: 80)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(group.name)
-                                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(box.title)
+                                    .font(.system(size: 17, weight: .black, design: .rounded))
                                     .foregroundStyle(.white)
-                                Text("收藏 \(group.items.count) 件 · 最高估值 \(group.items.map(\.chainValue).max() ?? 0)")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(.white.opacity(0.64))
+                                    .lineLimit(1)
+                                Text(box.subtitle)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(.white.opacity(0.62))
+                                    .lineLimit(1)
+
+                                HStack(spacing: 8) {
+                                    GeometryReader { geo in
+                                        ZStack(alignment: .leading) {
+                                            Capsule()
+                                                .fill(Color.white.opacity(0.10))
+                                                .frame(height: 5)
+                                            Capsule()
+                                                .fill(VitalityTheme.accent)
+                                                .frame(
+                                                    width: total > 0 ? geo.size.width * CGFloat(min(ownedCount, total)) / CGFloat(total) : 0,
+                                                    height: 5
+                                                )
+                                        }
+                                    }
+                                    .frame(height: 5)
+
+                                    Text("\(ownedCount)/\(total)")
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                        .foregroundStyle(VitalityTheme.accent)
+                                        .fixedSize()
+                                }
                             }
 
-                            Spacer()
+                            Spacer(minLength: 0)
 
-                            VStack(alignment: .trailing, spacing: 6) {
-                                Text("\(group.items.reduce(0) { $0 + $1.chainValue })")
-                                    .font(.system(size: 22, weight: .black, design: .rounded))
-                                    .foregroundStyle(.mint)
-                                Text("系列总值")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(.white.opacity(0.48))
-                            }
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.35))
                         }
                     }
                 }
+                .buttonStyle(.plain)
             }
         }
+    }
+
+    private func ownedCardCount(for box: BlindBox) -> Int {
+        let previewIDs = Set(box.previewCards.compactMap(\.remoteCardID))
+        if previewIDs.isEmpty {
+            // Fall back to series name matching
+            return store.collectibles.filter { $0.series == box.title }.count
+        }
+        return store.collectibles.filter { c in
+            guard let id = c.remoteCardID else { return false }
+            return previewIDs.contains(id)
+        }.count
     }
 
     private var collectedSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             sectionTitle("我的收藏")
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2), spacing: 12) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 2), spacing: 10) {
                 ForEach(store.collectibles) { item in
-                    VStack(alignment: .leading, spacing: 12) {
-                        ZStack(alignment: .topTrailing) {
-                            CollectibleArtworkView(collectible: item)
-                                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                                .frame(height: 168)
+                    ZStack(alignment: .topTrailing) {
+                        // Full-bleed artwork
+                        CollectibleArtworkView(collectible: item)
+                            .frame(height: 220)
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
-                            if item.isFavorite {
-                                Image(systemName: "heart.fill")
-                                    .font(.system(size: 12, weight: .bold))
+                        // Bottom text overlay
+                        .overlay(alignment: .bottom) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 6) {
+                                    RarityBadge(rarity: item.rarity)
+                                    if item.ownedCount > 1 {
+                                        Text("×\(item.ownedCount)")
+                                            .font(.system(size: 11, weight: .black, design: .rounded))
+                                            .foregroundStyle(.black)
+                                            .padding(.horizontal, 7)
+                                            .padding(.vertical, 4)
+                                            .background(VitalityTheme.accent, in: Capsule())
+                                    }
+                                }
+                                Text(item.name)
+                                    .font(.system(size: 14, weight: .black, design: .rounded))
                                     .foregroundStyle(.white)
-                                    .padding(8)
-                                    .background(VitalityTheme.pink, in: Circle())
-                                    .padding(10)
+                                    .lineLimit(2)
+                                HStack(spacing: 2) {
+                                    Text("估值")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundStyle(.white.opacity(0.6))
+                                    Text("\(item.chainValue)")
+                                        .font(.system(size: 15, weight: .black, design: .rounded))
+                                        .foregroundStyle(.mint)
+                                }
                             }
-                        }
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 8) {
-                                Text(item.series)
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(VitalityTheme.accent)
-                                    .lineLimit(1)
-                                RarityBadge(rarity: item.rarity)
-                            }
-
-                            Text(item.name)
-                                .font(.system(size: 18, weight: .black, design: .rounded))
-                                .foregroundStyle(.white)
-                                .lineLimit(2)
-
-                            Text(item.style)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.58))
-
-                            HStack {
-                                Text("估值")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(.white.opacity(0.48))
-                                Spacer()
-                                Text("\(item.chainValue)")
-                                    .font(.system(size: 18, weight: .black, design: .rounded))
-                                    .foregroundStyle(.mint)
-                            }
-                        }
-                    }
-                    .padding(14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
-                            .fill(
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 12)
+                            .padding(.top, 40)
+                            .padding(.bottom, 12)
+                            .background(
                                 LinearGradient(
-                                    colors: [Color.white.opacity(0.12), Color.white.opacity(0.05)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
+                                    colors: [.clear, .black.opacity(0.55), .black.opacity(0.82)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
                                 )
                             )
-                    )
+                            .clipShape(
+                                .rect(
+                                    bottomLeadingRadius: 20,
+                                    bottomTrailingRadius: 20
+                                )
+                            )
+                        }
+
+                        // Heart badge
+                        if item.isFavorite {
+                            Image(systemName: "heart.fill")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(7)
+                                .background(VitalityTheme.pink, in: Circle())
+                                .padding(10)
+                        }
+                    }
                 }
             }
         }
@@ -285,28 +312,144 @@ struct BackpackView: View {
         )
     }
 
-    private func overviewMetric(title: String, value: String, subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.54))
-            Text(value)
-                .font(.system(size: 26, weight: .black, design: .rounded))
-                .foregroundStyle(.white)
-            Text(subtitle)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white.opacity(0.46))
+}
+
+struct BlindBoxCollectionView: View {
+    @EnvironmentObject private var store: VitalityStore
+    @Environment(\.dismiss) private var dismiss
+    let box: BlindBox
+    @State private var resolvedBox: BlindBox? = nil
+
+    private var displayBox: BlindBox { resolvedBox ?? box }
+
+    private var ownedByCardID: [Int: Int] {
+        var result: [Int: Int] = [:]
+        for c in store.collectibles {
+            guard let id = c.remoteCardID else { continue }
+            result[id, default: 0] += c.ownedCount
         }
-        .frame(maxWidth: .infinity, minHeight: 96, alignment: .leading)
-        .padding(14)
-        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        return result
     }
 
-    private func seriesColor(for series: String) -> Color {
-        switch series {
-        case "冠军传说": VitalityTheme.orange
-        case "城市跑场": VitalityTheme.pink
-        default: VitalityTheme.cyan
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 10), count: 3)
+    }
+
+    var body: some View {
+        ZStack {
+            AppGradientBackground()
+
+            VStack(spacing: 0) {
+                // Top bar
+                HStack {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 36, height: 36)
+                            .background(Color.white.opacity(0.10), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+
+                    VStack(spacing: 2) {
+                        Text(displayBox.title)
+                            .font(.system(size: 17, weight: .black, design: .rounded))
+                            .foregroundStyle(.white)
+                        let owned = displayBox.previewCards.filter { card in
+                            guard let id = card.remoteCardID else { return false }
+                            return ownedByCardID[id] != nil
+                        }.count
+                        Text("已收集 \(owned)/\(displayBox.previewCards.count)")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(VitalityTheme.accent)
+                    }
+
+                    Spacer()
+
+                    // Balance placeholder
+                    Color.clear.frame(width: 36, height: 36)
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
+
+                if displayBox.previewCards.isEmpty {
+                    Spacer()
+                    ProgressView()
+                        .tint(VitalityTheme.accent)
+                        .scaleEffect(1.4)
+                    Spacer()
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        LazyVGrid(columns: columns, spacing: 10) {
+                            ForEach(displayBox.previewCards) { card in
+                                collectionCardCell(card)
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.top, 8)
+                        .padding(.bottom, 40)
+                    }
+                }
+            }
         }
+        .task {
+            resolvedBox = await store.loadBlindBoxDetail(for: box)
+        }
+    }
+
+    @ViewBuilder
+    private func collectionCardCell(_ card: BlindBoxCardPreview) -> some View {
+        let ownedCount = card.remoteCardID.flatMap { ownedByCardID[$0] }
+        let isOwned = ownedCount != nil
+
+        ZStack(alignment: .topTrailing) {
+            ZStack(alignment: .bottom) {
+                BlindBoxCardArtworkView(
+                    title: card.name,
+                    rarity: card.rarity,
+                    imageURL: card.imageURL
+                )
+                .frame(height: 140)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .saturation(isOwned ? 1.0 : 0.0)
+                .opacity(isOwned ? 1.0 : 0.4)
+
+                // Card name + rarity at bottom
+                VStack(alignment: .leading, spacing: 2) {
+                    RarityBadge(rarity: card.rarity)
+                    Text(card.name)
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(8)
+            }
+
+            // Owned count badge
+            if let count = ownedCount {
+                Text("×\(count)")
+                    .font(.system(size: 11, weight: .black, design: .rounded))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(VitalityTheme.accent, in: Capsule())
+                    .padding(6)
+            } else {
+                // Lock icon for unowned
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.55))
+                    .padding(7)
+                    .background(Color.black.opacity(0.40), in: Circle())
+                    .padding(6)
+            }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(isOwned ? VitalityTheme.accent.opacity(0.55) : Color.white.opacity(0.08), lineWidth: 1.5)
+        )
     }
 }

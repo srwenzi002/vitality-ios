@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local config overrides (do not commit) ###
+application-local.properties
+*.local.properties
+DB_CONFIG.txt
+API_TEST.txt
+*.sh.local

@@ -30,14 +30,13 @@ final class VitalityStore: ObservableObject {
     private let api = VitalityAPI()
     private let defaults = UserDefaults.standard
     private let demoPassword = "VitalityDemo2026!"
+    private let debugFixedUserID = "admin"
 
     private var hasLoadedRemote = false
     private var isLoadingRemote = false
     private var isDrawingBlindBox = false
 
-    private var cachedUserID: String? {
-        defaults.string(forKey: "vitality.demo.userId")
-    }
+    private var cachedUserID: String? { debugFixedUserID }
 
     private var cachedDemoIdentity: String {
         if let identity = defaults.string(forKey: "vitality.demo.identity") {
@@ -89,7 +88,8 @@ final class VitalityStore: ObservableObject {
             return []
         }
 
-        guard let remoteSeriesID = box.remoteSeriesID, let userID = cachedUserID else {
+        let resolvedUserID = cachedUserID ?? (profile.userId == "local-demo" ? nil : profile.userId)
+        guard let remoteSeriesID = box.remoteSeriesID, let userID = resolvedUserID else {
             return openBlindBoxLocally(box, count: count)
         }
 
@@ -147,13 +147,7 @@ final class VitalityStore: ObservableObject {
         defer { isLoadingRemote = false }
 
         do {
-            let user = try await api.ensureDemoUser(
-                identity: cachedDemoIdentity,
-                password: demoPassword,
-                cachedUserID: cachedUserID
-            )
-            defaults.set(user.userId, forKey: "vitality.demo.userId")
-
+            let user = try await loadPreferredRemoteUser()
             let bootstrap = try await api.bootstrap(userId: user.userId)
             apply(bootstrap: bootstrap)
 
@@ -186,6 +180,22 @@ final class VitalityStore: ObservableObject {
             prependActivity(title: "模拟模式", detail: "旧后端暂不可用，当前继续展示本地模拟数据", timestamp: "刚刚")
             toastMessage = "后端未连接，当前展示模拟数据"
         }
+    }
+
+    private func loadPreferredRemoteUser() async throws -> VitalityAPI.AuthResponse {
+        if let bootstrap = try? await api.bootstrap(userId: debugFixedUserID) {
+            return VitalityAPI.AuthResponse(
+                userId: bootstrap.userId,
+                username: bootstrap.username ?? "admin",
+                email: bootstrap.email ?? ""
+            )
+        }
+
+        return try await api.ensureDemoUser(
+            identity: cachedDemoIdentity,
+            password: demoPassword,
+            cachedUserID: nil
+        )
     }
 
     private func apply(bootstrap: VitalityAPI.BootstrapResponse) {
@@ -249,9 +259,10 @@ final class VitalityStore: ObservableObject {
             }
             return rewards
         } catch {
-            let rewards = openBlindBoxLocally(box, count: count)
-            toastMessage = "后端抽盒失败，已切换模拟开箱"
-            return rewards
+            let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+            toastMessage = message.isEmpty ? "后端抽盒失败" : message
+            prependActivity(title: "开箱失败", detail: "服务端抽卡未成功返回结果", timestamp: "刚刚")
+            return []
         }
     }
 
@@ -308,11 +319,12 @@ final class VitalityStore: ObservableObject {
             remoteCardID: apiCard.id,
             name: apiCard.name,
             series: apiCard.seriesName ?? "未知系列",
+            seriesID: apiCard.seriesId,
             rarity: rarity,
             style: apiCard.ownedCount > 1 ? "重复收藏 x\(apiCard.ownedCount)" : "收藏卡",
             chainValue: Self.simulatedFloorPrice(for: rarity, ownedCount: apiCard.ownedCount),
             isFavorite: rarity == .sr || rarity == .ssr,
-            imageURL: apiCard.imageUrl,
+            imageURL: apiCard.imageUrl ?? Self.syntheticCardImageURL(seriesName: apiCard.seriesName ?? "未知系列", seriesID: apiCard.seriesId, cardName: apiCard.name),
             ownedCount: max(apiCard.ownedCount, 1)
         )
     }
@@ -322,16 +334,22 @@ final class VitalityStore: ObservableObject {
             return nil
         }
 
+        let resolvedName = apiCard.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? Self.syntheticCardName(seriesName: fallbackSeries, cardID: apiCard.id, assetNumber: apiCard.assetNumber)
+            : apiCard.name
+
         return Collectible(
             id: UUID(),
             remoteCardID: apiCard.id,
-            name: apiCard.name,
+            name: resolvedName,
             series: fallbackSeries,
+            seriesID: apiCard.seriesId,
             rarity: rarity,
             style: apiCard.assetNumber.map { "资产编号 #\($0)" } ?? "官方藏品",
             chainValue: Self.simulatedFloorPrice(for: rarity, ownedCount: 1),
             isFavorite: rarity == .sr || rarity == .ssr,
-            imageURL: apiCard.imageUrl,
+            imageURL: apiCard.imageUrl ?? Self.syntheticCardImageURL(seriesName: fallbackSeries, seriesID: apiCard.seriesId, cardName: resolvedName),
+            assetNumber: apiCard.assetNumber,
             ownedCount: 1
         )
     }
@@ -451,6 +469,67 @@ private extension VitalityStore {
             return .legend
         }
         return .daily
+    }
+
+    nonisolated private static func syntheticCardName(seriesName: String, cardID: Int, assetNumber: Int?) -> String {
+        if let assetNumber {
+            return "\(seriesName) #\(String(format: "%02d", max(assetNumber % 100, 1)))"
+        }
+        return "\(seriesName) #\(String(format: "%02d", max(cardID, 1)))"
+    }
+
+    nonisolated private static func syntheticCardImageURL(seriesName: String, seriesID: Int?, cardName: String) -> String? {
+        let normalizedSeries = seriesName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let normalizedCard = cardName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        let seriesPrefix: String?
+        if normalizedSeries.contains("flutter series 01") || normalizedCard.contains("flutter series 01") || seriesID == 1 {
+            seriesPrefix = "series1"
+        } else if normalizedSeries.contains("flutter series 02") || normalizedCard.contains("flutter series 02") || seriesID == 2 {
+            seriesPrefix = "series2"
+        } else {
+            seriesPrefix = nil
+        }
+
+        guard let seriesPrefix else { return nil }
+
+        let cardIndex: Int?
+        if let marker = normalizedCard.range(of: "#") {
+            cardIndex = Int(normalizedCard[marker.upperBound...].trimmingCharacters(in: .whitespaces))
+        } else {
+            cardIndex = nil
+        }
+
+        guard let cardIndex else { return nil }
+
+        let hashesSeries1 = [
+            "3c06cc41d11af8ed86888f1b624301d3",
+            "4a5f2d49b7395f9cb06e70abf83be772",
+            "7fc0d5faf1c0344750b36ae01c86d6ef",
+            "9d91b21ee08b591a98878ba41e120a0c",
+            "a176385bbc8f4a82d8c5deed0f2b061d",
+            "bd70df3c780916e18984409dcd339714",
+            "ccff09c6df094adc5f44338f20252ac9",
+            "d2aed75787e5397cd4d62ad1aa855164",
+            "da2f645430ba9403e498d8c85a16e169",
+            "df2322d1a4a878bfeea11f9e9d841be6"
+        ]
+        let hashesSeries2 = [
+            "1ad25512582beaa25f9d4434fc28a7d8",
+            "2199211a9988643744dbb43efba55772",
+            "2d136ca7efc0a76989d7ed8b0d451031",
+            "3a4b7ea4b416980c697f784bd20b3fe6",
+            "4d38e7da2bae15dce359f2325797a420",
+            "65c2849fae6d951101a2f03534651d95",
+            "771b47bdbc8ffd6bf6154c3ca25196d2",
+            "9bedc9c1b3549fb1c3b00af335cc3832",
+            "b32afa31845b58d210c0ba5d5f7984d4",
+            "db11ab33364f8a9e5d442cb8ca31d97d"
+        ]
+
+        let hashes = seriesPrefix == "series1" ? hashesSeries1 : hashesSeries2
+        let safeIndex = max(0, min(cardIndex - 1, hashes.count - 1))
+        return "file:///\(seriesPrefix)/\(hashes[safeIndex]).png"
     }
 
     nonisolated static func highlight(for status: String, totalItems: Int) -> String {

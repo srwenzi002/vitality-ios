@@ -18,6 +18,8 @@
 		A00000000000000000000019 /* BackpackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000009 /* BackpackView.swift */; };
 		A0000000000000000000001A /* SocialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000A /* SocialView.swift */; };
 		A0000000000000000000001B /* BlindboxAssets in Resources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000C /* BlindboxAssets */; };
+		A0000000000000000000001C /* LegacyBlindboxSingleDraw.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000D /* LegacyBlindboxSingleDraw.swift */; };
+		A0000000000000000000001D /* BlindboxAdminView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000E /* BlindboxAdminView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +35,8 @@
 		A0000000000000000000000A /* SocialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialView.swift; sourceTree = "<group>"; };
 		A0000000000000000000000B /* VitalitySports.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VitalitySports.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000000000000000000C /* BlindboxAssets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = BlindboxAssets; sourceTree = "<group>"; };
+		A0000000000000000000000D /* LegacyBlindboxSingleDraw.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyBlindboxSingleDraw.swift; sourceTree = "<group>"; };
+		A0000000000000000000000E /* BlindboxAdminView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlindboxAdminView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,6 +73,8 @@
 				A00000000000000000000008 /* MarketView.swift */,
 				A00000000000000000000009 /* BackpackView.swift */,
 				A0000000000000000000000A /* SocialView.swift */,
+				A0000000000000000000000D /* LegacyBlindboxSingleDraw.swift */,
+				A0000000000000000000000E /* BlindboxAdminView.swift */,
 				A0000000000000000000000C /* BlindboxAssets */,
 			);
 		};
@@ -160,6 +166,8 @@
 				A00000000000000000000018 /* MarketView.swift in Sources */,
 				A00000000000000000000019 /* BackpackView.swift in Sources */,
 				A0000000000000000000001A /* SocialView.swift in Sources */,
+				A0000000000000000000001C /* LegacyBlindboxSingleDraw.swift in Sources */,
+				A0000000000000000000001D /* BlindboxAdminView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

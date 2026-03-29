@@ -21,7 +21,6 @@ struct DashboardView: View {
                     streakPanel
                     caloriePanel
                     healthMetrics
-                    blindBoxPanel
                     timelinePanel
                 }
                 .padding(.horizontal, 18)
@@ -231,65 +230,6 @@ struct DashboardView: View {
         }
     }
 
-    private var blindBoxPanel: some View {
-        FrostCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Text("盲盒快开")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                    Spacer()
-                    Text("模拟数据")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(VitalityTheme.cyan)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(VitalityTheme.cyan.opacity(0.12), in: Capsule())
-                }
-
-                ForEach(store.blindBoxes.prefix(2)) { box in
-                    HStack(alignment: .center, spacing: 14) {
-                        BlindBoxArtworkView(
-                            title: box.title,
-                            subtitle: nil,
-                            imageURL: box.imageURL,
-                            accent: box.category == .legend ? VitalityTheme.pink : (box.category == .urban ? VitalityTheme.cyan : VitalityTheme.orange)
-                        )
-                        .frame(width: 64, height: 72)
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(box.title)
-                                .font(.system(size: 17, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white)
-                            Text("\(box.category.rawValue) · \(box.keyCost) 把钥匙")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.68))
-                            Text(box.highlight)
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(VitalityTheme.accent)
-                        }
-
-                        Spacer()
-
-                        Button("开启") {
-                            store.openBlindBox(box)
-                        }
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 12)
-                        .background(Color.white.opacity(0.08), in: Capsule())
-                        .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 1))
-                        .foregroundStyle(.white)
-                    }
-                    if box.id != store.blindBoxes.prefix(2).last?.id {
-                        Divider().overlay(Color.white.opacity(0.08))
-                    }
-                }
-            }
-        }
-    }
 
     private var timelinePanel: some View {
         FrostCard {

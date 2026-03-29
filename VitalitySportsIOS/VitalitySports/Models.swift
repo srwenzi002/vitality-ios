@@ -50,12 +50,42 @@ struct Collectible: Identifiable, Hashable {
     let remoteCardID: Int?
     let name: String
     let series: String
+    let seriesID: Int?
     let rarity: RarityTier
     let style: String
     let chainValue: Int
     let isFavorite: Bool
     let imageURL: String?
+    let assetNumber: Int?
     let ownedCount: Int
+
+    init(
+        id: UUID,
+        remoteCardID: Int?,
+        name: String,
+        series: String,
+        seriesID: Int? = nil,
+        rarity: RarityTier,
+        style: String,
+        chainValue: Int,
+        isFavorite: Bool,
+        imageURL: String?,
+        assetNumber: Int? = nil,
+        ownedCount: Int
+    ) {
+        self.id = id
+        self.remoteCardID = remoteCardID
+        self.name = name
+        self.series = series
+        self.seriesID = seriesID
+        self.rarity = rarity
+        self.style = style
+        self.chainValue = chainValue
+        self.isFavorite = isFavorite
+        self.imageURL = imageURL
+        self.assetNumber = assetNumber
+        self.ownedCount = ownedCount
+    }
 }
 
 struct BlindBox: Identifiable, Hashable {

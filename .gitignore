@@ -1,0 +1,14 @@
+# Xcode user state (per-developer, not needed in repo)
+**/*.xcuserstate
+xcuserdata/
+
+# macOS
+.DS_Store
+
+# Build artifacts
+VitalityBackend/target/
+VitalityBackend/uploads/
+
+# Secrets / local config overrides
+*.env
+.env.local

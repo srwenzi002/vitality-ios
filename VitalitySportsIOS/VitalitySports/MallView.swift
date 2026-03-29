@@ -55,6 +55,7 @@ struct MallView: View {
 
     @State private var activeDestination: MallDestination?
     @State private var selectedBlindBox: BlindBox?
+    @State private var showAdmin = false
 
     private let creators: [CreatorProfile] = [
         .init(name: "YQ Motion Lab", tag: "官方合作", focus: "运动动态卡与勋章联名"),
@@ -82,7 +83,21 @@ struct MallView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
-                    SectionHeader(title: "商城", subtitle: "官方内容发布中心，二级入口承接盲盒、藏品、创作者与榜单")
+                    HStack(alignment: .top) {
+                        SectionHeader(title: "商城", subtitle: "官方内容发布中心，二级入口承接盲盒、藏品、创作者与榜单")
+                        Spacer()
+                        Button {
+                            showAdmin = true
+                        } label: {
+                            Image(systemName: "slider.horizontal.3")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(VitalityTheme.accent.opacity(0.8))
+                                .padding(8)
+                                .background(Circle().fill(VitalityTheme.accent.opacity(0.12)))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 2)
+                    }
                     menuGrid
                     featuredSection
                     hotSection
@@ -107,6 +122,9 @@ struct MallView: View {
                 .environmentObject(store)
         }
         .toolbar(.hidden, for: .navigationBar)
+        .fullScreenCover(isPresented: $showAdmin) {
+            BlindboxAdminView()
+        }
     }
 
     private var menuGrid: some View {
@@ -500,6 +518,8 @@ private struct BlindBoxDetailView: View {
     @State private var showBatchResult = false
     @State private var latestReward: Collectible?
     @State private var openingRewards: [Collectible] = []
+    @State private var legacySingleDrawPayload: LegacyBlindboxSingleDrawPayload?
+    @State private var legacyBatchDrawPayload: LegacyBlindboxBatchDrawPayload?
 
     init(initialBox: BlindBox) {
         self.initialBox = initialBox
@@ -508,127 +528,64 @@ private struct BlindBoxDetailView: View {
 
     var body: some View {
         ZStack {
-            AppGradientBackground()
+            AppGradientBackground().ignoresSafeArea()
 
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 18) {
-                    BlindBoxArtworkView(
-                        title: box.title,
-                        subtitle: box.subtitle,
-                        imageURL: box.imageURL,
-                        accent: accentColor
-                    )
-                    .frame(height: 250)
-                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                    .overlay(alignment: .topLeading) {
-                        Text("限定系列")
-                            .font(.system(size: 11, weight: .black, design: .rounded))
-                            .foregroundStyle(Color.black.opacity(0.84))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                            .background(VitalityTheme.accent, in: Capsule())
-                            .padding(16)
-                    }
+            VStack(spacing: 0) {
+                // 顶部导航栏（独立区域，不遮挡盲盒）
+                topBar
 
-                    FrostCard {
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text(box.title)
-                                .font(.system(size: 28, weight: .black, design: .rounded))
-                                .foregroundStyle(.white)
-                            Text("\(box.subtitle)。开启盲盒后可从当前系列中抽取卡片。")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.72))
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        // 盲盒装饰边框（标题已整合在图片底部 overlay）
+                        boxFrameSection
+                            .padding(.horizontal, 18)
 
-                            HStack(spacing: 10) {
-                                detailPill(title: "钥匙消耗", value: "\(box.keyCost * selectedQuantity)")
-                                detailPill(title: "元气币参考", value: "\(box.priceInCoins * selectedQuantity)")
-                                detailPill(title: "剩余钥匙", value: "\(store.profile.keys)")
-                            }
-                        }
-                    }
-
-                    FrostCard {
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text("选择开启数量")
-                                .font(.system(size: 18, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white)
-
-                            HStack(spacing: 12) {
+                        // 数量选择 + 开启按钮
+                        VStack(spacing: 12) {
+                            HStack(spacing: 0) {
                                 quantityButton(title: "单抽", value: 1)
                                 quantityButton(title: "十连抽", value: 10)
                             }
-                        }
-                    }
+                            .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("卡池预览")
-                                .font(.system(size: 20, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white)
-                            Spacer()
-                            Text("\(max(box.previewCards.count, 1)) 张")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(VitalityTheme.accent)
-                        }
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 14) {
-                                ForEach(displayCards) { card in
-                                    VStack(alignment: .leading, spacing: 10) {
-                                        BlindBoxCardArtworkView(title: card.name, rarity: card.rarity, imageURL: card.imageURL)
-                                            .frame(width: 118, height: 148)
-                                            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                                        HStack {
-                                            Text(card.name)
-                                                .font(.system(size: 14, weight: .bold, design: .rounded))
-                                                .foregroundStyle(.white)
-                                                .lineLimit(1)
-                                            Spacer()
-                                            RarityBadge(rarity: card.rarity)
-                                        }
-                                        Text(card.description)
-                                            .font(.system(size: 12, weight: .medium))
-                                            .foregroundStyle(.white.opacity(0.62))
-                                            .lineLimit(2)
+                            Button { startOpening() } label: {
+                                HStack {
+                                    Text(selectedQuantity == 1 ? "确认开启" : "确认十连抽")
+                                        .font(.system(size: 17, weight: .black, design: .rounded))
+                                    Spacer()
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "key.fill")
+                                            .font(.system(size: 11, weight: .black))
+                                        Text("× \(box.keyCost * selectedQuantity)")
+                                            .font(.system(size: 14, weight: .black, design: .rounded))
                                     }
-                                    .frame(width: 150, alignment: .leading)
-                                    .padding(14)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                            .fill(Color.white.opacity(0.08))
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
-                                            )
-                                    )
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color.black.opacity(0.18), in: Capsule())
                                 }
+                                .foregroundStyle(Color.black.opacity(0.84))
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 16)
+                                .background(
+                                    LinearGradient(
+                                        colors: [VitalityTheme.pink, VitalityTheme.cyan, VitalityTheme.accent],
+                                        startPoint: .leading, endPoint: .trailing
+                                    ),
+                                    in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                )
                             }
-                            .padding(.horizontal, 2)
+                            .buttonStyle(.plain)
                         }
-                    }
+                        .padding(.horizontal, 18)
+                        .padding(.top, 14)
 
-                    Button {
-                        startOpening()
-                    } label: {
-                        Text(selectedQuantity == 1 ? "确认开启" : "确认十连抽")
-                            .font(.system(size: 17, weight: .black, design: .rounded))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
-                            .background(
-                                LinearGradient(
-                                    colors: [VitalityTheme.pink, VitalityTheme.cyan, VitalityTheme.accent],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                ),
-                                in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            )
-                            .foregroundStyle(Color.black.opacity(0.84))
+                        // 卡池预览
+                        cardPoolSection
+                            .padding(.horizontal, 18)
+                            .padding(.top, 24)
+                            .padding(.bottom, 40)
                     }
-                    .buttonStyle(.plain)
-                    .padding(.top, 4)
                 }
-                .padding(.horizontal, 18)
-                .padding(.top, 10)
-                .padding(.bottom, 40)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -649,6 +606,18 @@ private struct BlindBoxDetailView: View {
             BlindBoxBatchResultSheet(box: box, rewards: openingRewards, remainingKeys: store.profile.keys)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+        }
+        .fullScreenCover(item: $legacySingleDrawPayload) { payload in
+            LegacyBlindboxSingleDrawCover(payload: payload) {
+                legacySingleDrawPayload = nil
+            }
+            .ignoresSafeArea()
+        }
+        .fullScreenCover(item: $legacyBatchDrawPayload) { payload in
+            LegacyBlindboxBatchDrawCover(payload: payload) {
+                legacyBatchDrawPayload = nil
+            }
+            .ignoresSafeArea()
         }
     }
 
@@ -672,18 +641,157 @@ private struct BlindBoxDetailView: View {
         }
     }
 
-    private func detailPill(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(title)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.56))
-            Text(value)
-                .font(.system(size: 15, weight: .black, design: .rounded))
-                .foregroundStyle(.white)
+    private var topBar: some View {
+        HStack {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 38, height: 38)
+                    .background(Color.white.opacity(0.10), in: Circle())
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            HStack(spacing: 6) {
+                Image(systemName: "key.fill")
+                    .font(.system(size: 13, weight: .black))
+                    .foregroundStyle(VitalityTheme.accent)
+                Text("\(store.profile.keys)")
+                    .font(.system(size: 17, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                Text("钥匙")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.55))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(Color.white.opacity(0.10), in: Capsule())
+            .overlay(Capsule().stroke(accentColor.opacity(0.35), lineWidth: 1))
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(.horizontal, 18)
+        .padding(.vertical, 10)
+    }
+
+    private var boxFrameSection: some View {
+        let borderGradient = LinearGradient(
+            colors: [
+                Color.white.opacity(0.75),
+                accentColor.opacity(0.85),
+                Color.white.opacity(0.28),
+                accentColor.opacity(0.65),
+                Color.white.opacity(0.75)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+
+        return BlindBoxArtworkView(
+            title: box.title,
+            subtitle: box.subtitle,
+            imageURL: box.imageURL,
+            accent: accentColor,
+            contentMode: .fit
+        )
+        // scaledToFit：图片按原比例缩放，不裁剪，高度由图片自身决定
+        .frame(maxWidth: .infinity)
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay {
+            // 装饰边框
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(borderGradient, lineWidth: 3)
+
+            // 四角菱形装饰
+            boxCornerOrnament.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).padding(4)
+            boxCornerOrnament.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(4)
+            boxCornerOrnament.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading).padding(4)
+            boxCornerOrnament.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing).padding(4)
+
+            // 标题 + 副标题
+            VStack(alignment: .leading, spacing: 3) {
+                Text(box.title)
+                    .font(.system(size: 20, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                Text(box.subtitle)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.72))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+
+            // 系列标签
+            Text("限定系列")
+                .font(.system(size: 11, weight: .black, design: .rounded))
+                .foregroundStyle(Color.black.opacity(0.84))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(VitalityTheme.accent, in: Capsule())
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(14)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
+                .fill(accentColor.opacity(0.3))
+                .blur(radius: 26)
+                .padding(-6)
+        )
+    }
+
+    private var boxCornerOrnament: some View {
+        ZStack {
+            Rectangle()
+                .fill(accentColor)
+                .frame(width: 11, height: 11)
+                .rotationEffect(.degrees(45))
+            Rectangle()
+                .fill(Color.white.opacity(0.55))
+                .frame(width: 5, height: 5)
+                .rotationEffect(.degrees(45))
+        }
+    }
+
+    private var cardPoolSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("卡池预览")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                Spacer()
+                Text("\(max(box.previewCards.count, 1)) 张")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(accentColor)
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(displayCards) { card in
+                        VStack(alignment: .leading, spacing: 8) {
+                            BlindBoxCardArtworkView(title: card.name, rarity: card.rarity, imageURL: card.imageURL)
+                                .frame(width: 110, height: 138)
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                            Text(card.name)
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                            RarityBadge(rarity: card.rarity)
+                        }
+                        .frame(width: 132, alignment: .leading)
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                .fill(Color.white.opacity(0.07))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                        .stroke(Color.white.opacity(0.09), lineWidth: 1)
+                                )
+                        )
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+        }
     }
 
     private func quantityButton(title: String, value: Int) -> some View {
@@ -691,42 +799,46 @@ private struct BlindBoxDetailView: View {
             selectedQuantity = value
         } label: {
             Text(title)
-                .font(.system(size: 14, weight: .black, design: .rounded))
+                .font(.system(size: 15, weight: .black, design: .rounded))
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
+                .padding(.vertical, 13)
                 .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(selectedQuantity == value ? Color.white.opacity(0.18) : Color.white.opacity(0.05))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(selectedQuantity == value ? accentColor.opacity(0.66) : Color.white.opacity(0.08), lineWidth: 1)
-                        )
+                    selectedQuantity == value
+                        ? AnyShapeStyle(accentColor.opacity(0.88))
+                        : AnyShapeStyle(Color.clear),
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
                 )
-                .foregroundStyle(.white)
+                .foregroundStyle(selectedQuantity == value ? Color.black.opacity(0.82) : Color.white.opacity(0.58))
         }
         .buttonStyle(.plain)
+        .padding(3)
     }
 
     private func startOpening() {
-        isOpening = true
         openingRewards = []
         latestReward = nil
 
         Task {
-            try? await Task.sleep(for: .seconds(0.7))
             let rewards = await store.openBlindBoxAnimated(box, count: selectedQuantity)
-            await MainActor.run {
-                openingRewards = rewards
-            }
-            try? await Task.sleep(for: .seconds(selectedQuantity == 1 ? 3.0 : 2.8))
 
             await MainActor.run {
-                isOpening = false
                 if selectedQuantity == 1 {
-                    latestReward = rewards.max(by: { $0.chainValue < $1.chainValue }) ?? rewards.first
-                    showResult = latestReward != nil
+                    if let reward = rewards.max(by: { $0.chainValue < $1.chainValue }) ?? rewards.first {
+                        legacySingleDrawPayload = LegacyBlindboxSingleDrawPayload(
+                            box: box,
+                            reward: reward,
+                            remainingKeys: store.profile.keys
+                        )
+                    }
                 } else {
-                    showBatchResult = !rewards.isEmpty
+                    openingRewards = rewards
+                    if !rewards.isEmpty {
+                        legacyBatchDrawPayload = LegacyBlindboxBatchDrawPayload(
+                            box: box,
+                            rewards: rewards,
+                            remainingKeys: store.profile.keys
+                        )
+                    }
                 }
             }
         }
