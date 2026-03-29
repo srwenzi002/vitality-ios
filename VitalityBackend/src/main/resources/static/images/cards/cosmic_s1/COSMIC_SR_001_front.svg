@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3b1a43"/>
+      <stop offset="100%" stop-color="#c53e8f"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect x="180" y="180" width="664" height="664" rx="180" fill="#ffd2ef" opacity="0.2"/>
+  <circle cx="320" cy="280" r="100" fill="#ffc3ea" opacity="0.3"/>
+  <text x="80" y="130" font-size="64" fill="#ffffff" font-family="Arial" font-weight="700">COSMIC S1</text>
+  <text x="80" y="220" font-size="54" fill="#ffe7f7" font-family="Arial" font-weight="600">GUARDIAN - HALO</text>
+  <text x="80" y="300" font-size="40" fill="#ffe5f5" font-family="Arial">RARITY: SR</text>
+  <rect x="80" y="760" width="864" height="180" rx="28" fill="#000" opacity="0.30"/>
+  <text x="110" y="845" font-size="38" fill="#ffeaf8" font-family="Arial">Super-rare defense core with shield arrays.</text>
+</svg>

@@ -1,0 +1,296 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A00000000000000000000011 /* VitalitySportsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000001 /* VitalitySportsApp.swift */; };
+		A00000000000000000000012 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000002 /* ContentView.swift */; };
+		A00000000000000000000013 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000003 /* Models.swift */; };
+		A00000000000000000000014 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000004 /* AppStore.swift */; };
+		A00000000000000000000015 /* SharedViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000005 /* SharedViews.swift */; };
+		A00000000000000000000016 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000006 /* DashboardView.swift */; };
+		A00000000000000000000017 /* MallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000007 /* MallView.swift */; };
+		A00000000000000000000018 /* MarketView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000008 /* MarketView.swift */; };
+		A00000000000000000000019 /* BackpackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000009 /* BackpackView.swift */; };
+		A0000000000000000000001A /* SocialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000A /* SocialView.swift */; };
+		A0000000000000000000001B /* BlindboxAssets in Resources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000C /* BlindboxAssets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A00000000000000000000001 /* VitalitySportsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalitySportsApp.swift; sourceTree = "<group>"; };
+		A00000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A00000000000000000000003 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		A00000000000000000000004 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
+		A00000000000000000000005 /* SharedViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedViews.swift; sourceTree = "<group>"; };
+		A00000000000000000000006 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		A00000000000000000000007 /* MallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MallView.swift; sourceTree = "<group>"; };
+		A00000000000000000000008 /* MarketView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketView.swift; sourceTree = "<group>"; };
+		A00000000000000000000009 /* BackpackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackpackView.swift; sourceTree = "<group>"; };
+		A0000000000000000000000A /* SocialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialView.swift; sourceTree = "<group>"; };
+		A0000000000000000000000B /* VitalitySports.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VitalitySports.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A0000000000000000000000C /* BlindboxAssets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = BlindboxAssets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A00000000000000000000021 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A00000000000000000000030 = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000031 /* VitalitySports */,
+				A00000000000000000000032 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A00000000000000000000031 /* VitalitySports */ = {
+			isa = PBXGroup;
+			path = VitalitySports;
+			sourceTree = "<group>";
+			children = (
+				A00000000000000000000001 /* VitalitySportsApp.swift */,
+				A00000000000000000000002 /* ContentView.swift */,
+				A00000000000000000000003 /* Models.swift */,
+				A00000000000000000000004 /* AppStore.swift */,
+				A00000000000000000000005 /* SharedViews.swift */,
+				A00000000000000000000006 /* DashboardView.swift */,
+				A00000000000000000000007 /* MallView.swift */,
+				A00000000000000000000008 /* MarketView.swift */,
+				A00000000000000000000009 /* BackpackView.swift */,
+				A0000000000000000000000A /* SocialView.swift */,
+				A0000000000000000000000C /* BlindboxAssets */,
+			);
+		};
+		A00000000000000000000032 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000000B /* VitalitySports.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A00000000000000000000040 /* VitalitySports */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000052 /* Build configuration list for PBXNativeTarget "VitalitySports" */;
+			buildPhases = (
+				A00000000000000000000020 /* Sources */,
+				A00000000000000000000021 /* Frameworks */,
+				A00000000000000000000022 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = VitalitySports;
+			productName = VitalitySports;
+			productReference = A0000000000000000000000B /* VitalitySports.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000000000000000000050 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2611;
+				LastUpgradeCheck = 2611;
+				TargetAttributes = {
+					A00000000000000000000040 = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
+				};
+			};
+			buildConfigurationList = A00000000000000000000051 /* Build configuration list for PBXProject "VitalitySports" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A00000000000000000000030;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A00000000000000000000032 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A00000000000000000000040 /* VitalitySports */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A00000000000000000000022 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A0000000000000000000001B /* BlindboxAssets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A00000000000000000000020 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000011 /* VitalitySportsApp.swift in Sources */,
+				A00000000000000000000012 /* ContentView.swift in Sources */,
+				A00000000000000000000013 /* Models.swift in Sources */,
+				A00000000000000000000014 /* AppStore.swift in Sources */,
+				A00000000000000000000015 /* SharedViews.swift in Sources */,
+				A00000000000000000000016 /* DashboardView.swift in Sources */,
+				A00000000000000000000017 /* MallView.swift in Sources */,
+				A00000000000000000000018 /* MarketView.swift in Sources */,
+				A00000000000000000000019 /* BackpackView.swift in Sources */,
+				A0000000000000000000001A /* SocialView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A00000000000000000000060 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+			};
+			name = Debug;
+		};
+		A00000000000000000000061 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+			};
+			name = Release;
+		};
+		A00000000000000000000062 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"\"";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "元气运动";
+				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vitalitysports.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A00000000000000000000063 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"\"";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "元气运动";
+				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vitalitysports.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A00000000000000000000051 /* Build configuration list for PBXProject "VitalitySports" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000060 /* Debug */,
+				A00000000000000000000061 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A00000000000000000000052 /* Build configuration list for PBXNativeTarget "VitalitySports" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000062 /* Debug */,
+				A00000000000000000000063 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A00000000000000000000050 /* Project object */;
+}

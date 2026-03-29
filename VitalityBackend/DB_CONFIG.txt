@@ -1,0 +1,38 @@
+# 数据库配置
+
+## 连接信息
+```
+数据库: vitality_genesis
+主机: localhost
+端口: 5432
+用户: vitality_admin
+密码: VitalityPass2024!
+```
+
+## JDBC连接
+```
+jdbc:postgresql://localhost:5432/vitality_genesis
+```
+
+## 启动数据库
+```bash
+./setup-database.sh
+```
+
+## 常用命令
+```bash
+# 启动
+docker-compose up -d
+
+# 停止
+docker-compose down
+
+# 重启
+docker-compose restart postgres
+
+# 查看日志
+docker-compose logs -f postgres
+
+# 进入数据库
+docker exec -it vitality-postgres psql -U vitality_admin -d vitality_genesis
+```

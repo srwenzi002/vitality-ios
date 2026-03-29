@@ -1,0 +1,53 @@
+# API 测试说明
+
+## 启动项目
+```bash
+cd VitalityBackend
+mvn spring-boot:run
+```
+
+## API接口
+
+### 1. 获取所有用户
+```bash
+curl http://localhost:8080/api/users
+```
+
+### 2. 获取用户数量
+```bash
+curl http://localhost:8080/api/users/count
+```
+
+### 3. 创建测试用户
+```bash
+curl -X POST http://localhost:8080/api/users/test
+```
+
+### 4. 根据ID查询用户
+```bash
+curl http://localhost:8080/api/users/1
+```
+
+### 5. 根据userId查询用户
+```bash
+curl http://localhost:8080/api/users/userId/test_1234567890
+```
+
+## 响应格式
+
+成功：
+```json
+{
+  "success": true,
+  "data": {...},
+  "total": 10
+}
+```
+
+失败：
+```json
+{
+  "success": false,
+  "message": "错误信息"
+}
+```
