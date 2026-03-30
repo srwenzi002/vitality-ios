@@ -1,5 +1,7 @@
 package com.vitality.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 import jakarta.persistence.*;
@@ -31,6 +33,7 @@ import java.time.LocalDateTime;
 @TableName("card_designs")
 public class CardDesign {
 
+    @TableId(type = IdType.AUTO)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

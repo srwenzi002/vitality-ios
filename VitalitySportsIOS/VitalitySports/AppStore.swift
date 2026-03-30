@@ -1,5 +1,54 @@
 import Foundation
 
+enum VitalityNetworkConfig {
+    static let productionHost = "wen-zi.com:8088"
+
+    static var apiBaseURLs: [URL] {
+        return [
+            URL(string: "http://\(productionHost)/api")!
+        ]
+    }
+
+    static var mediaBaseURL: String {
+        "http://\(productionHost)/api"
+    }
+
+    static func rewriteToReachableURL(_ rawValue: String?) -> String? {
+        guard let rawValue, !rawValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+
+        let host = productionHost
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmed.hasPrefix("/uploads/") {
+            return "\(mediaBaseURL)\(trimmed)"
+        }
+
+        if trimmed.hasPrefix("/"), !trimmed.hasPrefix("//") {
+            return "http://\(host)\(trimmed)"
+        }
+
+        return trimmed
+            .replacingOccurrences(of: "http://\(host)/uploads/", with: "\(mediaBaseURL)/uploads/")
+            .replacingOccurrences(of: "https://\(host)/uploads/", with: "\(mediaBaseURL)/uploads/")
+            .replacingOccurrences(of: "http://localhost:8080", with: "http://\(host)")
+            .replacingOccurrences(of: "https://localhost:8080", with: "http://\(host)")
+            .replacingOccurrences(of: "http://127.0.0.1:8080", with: "http://\(host)")
+            .replacingOccurrences(of: "https://127.0.0.1:8080", with: "http://\(host)")
+            .replacingOccurrences(of: "http://192.168.1.189:8080", with: "http://\(host)")
+            .replacingOccurrences(of: "https://192.168.1.189:8080", with: "http://\(host)")
+            .replacingOccurrences(of: "http://\(host)/uploads/", with: "\(mediaBaseURL)/uploads/")
+            .replacingOccurrences(of: "https://\(host)/uploads/", with: "\(mediaBaseURL)/uploads/")
+            .replacingOccurrences(of: "http://localhost:8080/uploads/", with: "\(mediaBaseURL)/uploads/")
+            .replacingOccurrences(of: "https://localhost:8080/uploads/", with: "\(mediaBaseURL)/uploads/")
+            .replacingOccurrences(of: "http://127.0.0.1:8080/uploads/", with: "\(mediaBaseURL)/uploads/")
+            .replacingOccurrences(of: "https://127.0.0.1:8080/uploads/", with: "\(mediaBaseURL)/uploads/")
+            .replacingOccurrences(of: "http://192.168.1.189:8080/uploads/", with: "\(mediaBaseURL)/uploads/")
+            .replacingOccurrences(of: "https://192.168.1.189:8080/uploads/", with: "\(mediaBaseURL)/uploads/")
+    }
+}
+
 @MainActor
 final class VitalityStore: ObservableObject {
     @Published var profile = UserProfile(
@@ -35,6 +84,8 @@ final class VitalityStore: ObservableObject {
     private var hasLoadedRemote = false
     private var isLoadingRemote = false
     private var isDrawingBlindBox = false
+    private var isPreloadingBlindBoxDetails = false
+    private var loadedBlindBoxSeriesIDs: Set<Int> = []
 
     private var cachedUserID: String? { debugFixedUserID }
 
@@ -101,8 +152,22 @@ final class VitalityStore: ObservableObject {
     }
 
     func loadBlindBoxDetail(for box: BlindBox) async -> BlindBox {
+        if !box.previewCards.isEmpty {
+            return box
+        }
+
+        if let existing = blindBoxes.first(where: { $0.id == box.id }), !existing.previewCards.isEmpty {
+            return existing
+        }
+
         guard let remoteSeriesID = box.remoteSeriesID else {
             return box
+        }
+
+        if loadedBlindBoxSeriesIDs.contains(remoteSeriesID),
+           let existing = blindBoxes.first(where: { $0.remoteSeriesID == remoteSeriesID }),
+           !existing.previewCards.isEmpty {
+            return existing
         }
 
         do {
@@ -135,9 +200,27 @@ final class VitalityStore: ObservableObject {
             if let index = blindBoxes.firstIndex(where: { $0.id == box.id }) {
                 blindBoxes[index] = enriched
             }
+            loadedBlindBoxSeriesIDs.insert(remoteSeriesID)
             return enriched
         } catch {
             return box
+        }
+    }
+
+    func preloadBlindBoxDetailsIfNeeded() async {
+        guard !isPreloadingBlindBoxDetails else { return }
+
+        let pending = blindBoxes.filter { box in
+            guard let remoteSeriesID = box.remoteSeriesID else { return false }
+            return box.previewCards.isEmpty && !loadedBlindBoxSeriesIDs.contains(remoteSeriesID)
+        }
+
+        guard !pending.isEmpty else { return }
+        isPreloadingBlindBoxDetails = true
+        defer { isPreloadingBlindBoxDetails = false }
+
+        for box in pending {
+            _ = await loadBlindBoxDetail(for: box)
         }
     }
 
@@ -168,6 +251,7 @@ final class VitalityStore: ObservableObject {
                         previewCards: []
                     )
                 }
+                loadedBlindBoxSeriesIDs.removeAll()
             }
 
             if let remoteCollectibles = try? await api.fetchOwnedCollectibles(userId: user.userId), !remoteCollectibles.isEmpty {
@@ -582,10 +666,7 @@ private struct VitalityAPI {
     }()
 
     private var baseURLs: [URL] {
-        [
-            URL(string: "http://127.0.0.1:8080/api")!,
-            URL(string: "http://localhost:8080/api")!
-        ]
+        VitalityNetworkConfig.apiBaseURLs
     }
 
     func ensureDemoUser(identity: String, password: String, cachedUserID: String?) async throws -> AuthResponse {

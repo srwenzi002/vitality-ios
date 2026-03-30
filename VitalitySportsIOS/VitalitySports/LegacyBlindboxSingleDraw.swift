@@ -2639,7 +2639,7 @@ private final class LegacySceneKitRewardCardView: SCNView, UIGestureRecognizerDe
 }
 
 private func legacyNormalizedImageURL(from rawValue: String?) -> URL? {
-    guard let rawValue, !rawValue.isEmpty else { return nil }
+    guard let rawValue = VitalityNetworkConfig.rewriteToReachableURL(rawValue), !rawValue.isEmpty else { return nil }
     if rawValue.hasPrefix("http://") || rawValue.hasPrefix("https://") || rawValue.hasPrefix("file://") {
         return URL(string: rawValue)
     }

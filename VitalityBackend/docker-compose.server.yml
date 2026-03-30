@@ -1,0 +1,46 @@
+services:
+  vitality-postgres:
+    image: postgres:16-alpine
+    container_name: vitality-server-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vitality_genesis}
+      POSTGRES_USER: ${POSTGRES_USER:-vitality_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env.server}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      TZ: Asia/Shanghai
+    volumes:
+      - vitality_postgres_data:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vitality_admin} -d ${POSTGRES_DB:-vitality_genesis}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  vitality-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vitality-server-backend
+    restart: unless-stopped
+    depends_on:
+      vitality-postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://vitality-postgres:5432/${POSTGRES_DB:-vitality_genesis}?sslmode=disable
+      DB_USERNAME: ${POSTGRES_USER:-vitality_admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?set in .env.server}
+      BASE_URL: ${BASE_URL:-http://wen-zi.com:8088}
+      UPLOAD_DIR: /app/uploads
+      SPRING_JPA_SHOW_SQL: "false"
+      LOGGING_LEVEL_COM_VITALITY: INFO
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: WARN
+    ports:
+      - "${VITALITY_HTTP_PORT:-8088}:8080"
+    volumes:
+      - vitality_uploads:/app/uploads
+
+volumes:
+  vitality_postgres_data:
+  vitality_uploads:

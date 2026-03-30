@@ -31,12 +31,8 @@ struct BackpackView: View {
 
                     if selection == 0 {
                         overviewSection
-                            .task(id: "overview") {
-                                await withTaskGroup(of: Void.self) { group in
-                                    for box in store.blindBoxes where box.previewCards.isEmpty {
-                                        group.addTask { _ = await store.loadBlindBoxDetail(for: box) }
-                                    }
-                                }
+                            .task {
+                                await store.preloadBlindBoxDetailsIfNeeded()
                             }
                     } else if selection == 1 {
                         collectedSection

@@ -137,7 +137,11 @@ struct ToastOverlay: View {
     }
 }
 
-private enum BlindboxBundleAssetResolver {
+enum BlindboxBundleAssetResolver {
+    static func image(from imageSource: String?) -> UIImage? {
+        image(named: assetName(from: imageSource))
+    }
+
     static func coverImage(title: String, imageSource: String?) -> UIImage? {
         image(named: coverAssetName(title: title, imageSource: imageSource))
     }
@@ -265,8 +269,9 @@ private enum BlindboxBundleAssetResolver {
 /// - Absolute HTTP/HTTPS URLs are returned as-is.
 /// - Paths starting with "/" are treated as relative to the backend server host.
 /// - Local `file://` paths and other schemes are ignored (returns nil; caller shows placeholder).
-func normalizedBlindBoxURL(_ source: String?, serverHost: String = "http://127.0.0.1:8080/api") -> URL? {
-    guard let source, !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+func normalizedBlindBoxURL(_ source: String?, serverHost: String = VitalityNetworkConfig.mediaBaseURL) -> URL? {
+    guard let source = VitalityNetworkConfig.rewriteToReachableURL(source),
+          !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
         return nil
     }
 

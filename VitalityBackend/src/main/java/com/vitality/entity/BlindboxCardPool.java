@@ -1,5 +1,7 @@
 package com.vitality.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 
 import com.vitality.entity.converter.LowercaseEnumConverter;
@@ -33,6 +35,7 @@ import java.time.LocalDateTime;
 @TableName("blindbox_card_pools")
 public class BlindboxCardPool {
 
+    @TableId(type = IdType.AUTO)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

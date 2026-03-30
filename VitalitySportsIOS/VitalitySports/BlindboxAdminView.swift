@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 
 // MARK: - Admin Data Models
@@ -56,10 +57,7 @@ struct CardWithPool: Identifiable {
 
 private struct AdminAPI {
     private let session = URLSession.shared
-    private let baseURLs = [
-        URL(string: "http://127.0.0.1:8080/api")!,
-        URL(string: "http://localhost:8080/api")!
-    ]
+    private let baseURLs = VitalityNetworkConfig.apiBaseURLs
 
     // Series
     func listSeries() async throws -> [AdminSeries] {
@@ -101,6 +99,38 @@ private struct AdminAPI {
     }
     func removeFromPool(id: Int) async throws {
         try await deleteRequest("admin/blindbox/pool/\(id)")
+    }
+
+    func uploadImage(data: Data, filename: String, folder: String) async throws -> String {
+        var lastError: Error = URLError(.cannotConnectToHost)
+        let boundary = "Boundary-\(UUID().uuidString)"
+
+        for base in baseURLs {
+            do {
+                var req = URLRequest(url: base.appendingPathComponent("upload"))
+                req.httpMethod = "POST"
+                req.timeoutInterval = 30
+                req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+                req.httpBody = multipartBody(data: data, filename: filename, folder: folder, boundary: boundary)
+
+                let (responseData, response) = try await session.data(for: req)
+                guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+                    throw AdminAPIError.httpError
+                }
+
+                let envelope = try JSONDecoder().decode(Envelope<String>.self, from: responseData)
+                guard envelope.code == 200, let payload = envelope.data else {
+                    throw AdminAPIError.serverError(envelope.message ?? "图片上传失败")
+                }
+                return payload
+            } catch let error as AdminAPIError {
+                throw error
+            } catch {
+                lastError = error
+            }
+        }
+
+        throw lastError
     }
 
     // HTTP Helpers
@@ -166,6 +196,24 @@ private struct AdminAPI {
             }
         }
         throw lastError
+    }
+
+    private func multipartBody(data: Data, filename: String, folder: String, boundary: String) -> Data {
+        var body = Data()
+        let lineBreak = "\r\n"
+
+        body.append("--\(boundary)\(lineBreak)".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"folder\"\(lineBreak)\(lineBreak)".data(using: .utf8)!)
+        body.append("\(folder)\(lineBreak)".data(using: .utf8)!)
+
+        body.append("--\(boundary)\(lineBreak)".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\(lineBreak)".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\(lineBreak)\(lineBreak)".data(using: .utf8)!)
+        body.append(data)
+        body.append(lineBreak.data(using: .utf8)!)
+        body.append("--\(boundary)--\(lineBreak)".data(using: .utf8)!)
+
+        return body
     }
 
     struct Envelope<T: Decodable>: Decodable {
@@ -256,15 +304,21 @@ private struct AdminThumbnail: View {
 
     var body: some View {
         Group {
-            if let urlString, !urlString.isEmpty, let url = URL(string: urlString) {
+            if let urlString = VitalityNetworkConfig.rewriteToReachableURL(urlString),
+               !urlString.isEmpty,
+               let url = URL(string: urlString) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let image):
                         image.resizable().scaledToFill()
+                    case .failure:
+                        fallbackImage ?? AnyView(placeholder)
                     default:
                         placeholder
                     }
                 }
+            } else if let fallbackImage {
+                fallbackImage
             } else {
                 placeholder
             }
@@ -282,6 +336,18 @@ private struct AdminThumbnail: View {
                     .foregroundStyle(.white.opacity(0.25))
             )
     }
+
+    private var fallbackImage: AnyView? {
+        guard let image = BlindboxBundleAssetResolver.image(from: urlString) else {
+            return nil
+        }
+
+        return AnyView(
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+        )
+    }
 }
 
 // MARK: - Inline Image Preview Component
@@ -290,7 +356,9 @@ private struct ImagePreviewRow: View {
     let urlString: String
 
     var body: some View {
-        if !urlString.isEmpty, let url = URL(string: urlString) {
+        if let normalized = VitalityNetworkConfig.rewriteToReachableURL(urlString),
+           !normalized.isEmpty,
+           let url = URL(string: normalized) {
             HStack {
                 Spacer()
                 AsyncImage(url: url) { phase in
@@ -302,9 +370,7 @@ private struct ImagePreviewRow: View {
                             .frame(maxHeight: 160)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     case .failure:
-                        Label("图片加载失败", systemImage: "exclamationmark.triangle")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.red.opacity(0.7))
+                        fallbackContent
                     case .empty:
                         ProgressView().tint(VitalityTheme.accent)
                     @unknown default:
@@ -314,7 +380,116 @@ private struct ImagePreviewRow: View {
                 Spacer()
             }
             .padding(.vertical, 4)
+        } else if !urlString.isEmpty {
+            HStack {
+                Spacer()
+                fallbackContent
+                Spacer()
+            }
+            .padding(.vertical, 4)
         }
+    }
+
+    @ViewBuilder
+    private var fallbackContent: some View {
+        if let image = BlindboxBundleAssetResolver.image(from: urlString) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(maxHeight: 160)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        } else {
+            Label("图片加载失败", systemImage: "exclamationmark.triangle")
+                .font(.system(size: 12))
+                .foregroundStyle(.red.opacity(0.7))
+        }
+    }
+}
+
+private struct AdminImageUploadField: View {
+    let label: String
+    let placeholder: String
+    let folder: String
+    @Binding var text: String
+
+    @State private var selectedItem: PhotosPickerItem?
+    @State private var isUploading = false
+    @State private var uploadError: String?
+    @State private var uploadSuccessHint: String?
+
+    private let api = AdminAPI()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            AdminTextField(label: label, placeholder: placeholder, text: $text)
+
+            let buttonTitle = isUploading ? "上传中..." : "选择并上传图片"
+            HStack(spacing: 10) {
+                PhotosPicker(selection: $selectedItem, matching: .images) {
+                    Label(buttonTitle, systemImage: "photo.badge.plus")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(VitalityTheme.accent)
+                }
+                .disabled(isUploading)
+
+                if !text.isEmpty {
+                    Button("清空") {
+                        text = ""
+                    }
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.6))
+                }
+            }
+
+            if let uploadError {
+                Text(uploadError)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.red.opacity(0.8))
+            }
+
+            if let uploadSuccessHint {
+                Text(uploadSuccessHint)
+                    .font(.system(size: 12))
+                    .foregroundStyle(VitalityTheme.accent.opacity(0.85))
+            }
+
+            ImagePreviewRow(urlString: text)
+        }
+        .onChange(of: selectedItem) { _, newItem in
+            guard let newItem else { return }
+            Task { await upload(item: newItem) }
+        }
+    }
+
+    private func upload(item: PhotosPickerItem) async {
+        isUploading = true
+        uploadError = nil
+        uploadSuccessHint = nil
+        defer { isUploading = false }
+
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
+                throw AdminAPIError.serverError("读取图片失败")
+            }
+
+            let jpegData = try normalizeImageData(data)
+            let filename = "ios-\(UUID().uuidString).jpg"
+            let uploadedPath = try await api.uploadImage(data: jpegData, filename: filename, folder: folder)
+            text = uploadedPath
+            uploadSuccessHint = "上传成功：\(uploadedPath)"
+        } catch {
+            uploadError = "上传失败：\(error.localizedDescription)"
+        }
+    }
+
+    private func normalizeImageData(_ data: Data) throws -> Data {
+        guard let image = UIImage(data: data) else {
+            throw AdminAPIError.serverError("图片格式无法解析")
+        }
+        guard let jpegData = image.jpegData(compressionQuality: 0.9) else {
+            throw AdminAPIError.serverError("图片转换失败")
+        }
+        return jpegData
     }
 }
 
@@ -870,8 +1045,12 @@ struct CreateSeriesSheet: View {
                 AdminTextField(label: "系列名称 *", placeholder: "如 城市跑场系列", text: $name)
                 AdminTextField(label: "创作者", placeholder: "如 YQ Motion Lab", text: $creator)
                 AdminTextField(label: "简介", placeholder: "系列简介", text: $description)
-                AdminTextField(label: "封面图 URL", placeholder: "https://...", text: $coverImage)
-                ImagePreviewRow(urlString: coverImage)
+                AdminImageUploadField(
+                    label: "封面图 URL",
+                    placeholder: "可手填，也可直接上传",
+                    folder: "images",
+                    text: $coverImage
+                )
             }
             .listRowBackground(VitalityTheme.card)
 
@@ -970,8 +1149,12 @@ struct EditSeriesSheet: View {
                         AdminTextField(label: "系列名称", placeholder: "", text: $name)
                         AdminTextField(label: "创作者", placeholder: "", text: $creator)
                         AdminTextField(label: "简介", placeholder: "", text: $description)
-                        AdminTextField(label: "封面图 URL", placeholder: "", text: $coverImage)
-                        ImagePreviewRow(urlString: coverImage)
+                        AdminImageUploadField(
+                            label: "封面图 URL",
+                            placeholder: "可手填，也可直接上传",
+                            folder: "images",
+                            text: $coverImage
+                        )
                     }
                     .listRowBackground(VitalityTheme.card)
 
@@ -1081,8 +1264,12 @@ struct CreateCardSheet: View {
                         AdminTextField(label: "卡片代码 *", placeholder: "如 CARD_001", text: $code)
                         AdminTextField(label: "藏品名称 *", placeholder: "如 城市疾风者", text: $name)
                         AdminTextField(label: "简介", placeholder: "藏品描述", text: $description)
-                        AdminTextField(label: "正面图片 URL", placeholder: "https://...", text: $frontImageUrl)
-                        ImagePreviewRow(urlString: frontImageUrl)
+                        AdminImageUploadField(
+                            label: "正面图片 URL",
+                            placeholder: "可手填，也可直接上传",
+                            folder: "images",
+                            text: $frontImageUrl
+                        )
                     }
                     .listRowBackground(VitalityTheme.card)
 
@@ -1217,8 +1404,12 @@ struct EditCardSheet: View {
                 Form {
                     Section("藏品信息") {
                         AdminTextField(label: "藏品名称", placeholder: "", text: $name)
-                        AdminTextField(label: "正面图片 URL", placeholder: "", text: $frontImageUrl)
-                        ImagePreviewRow(urlString: frontImageUrl)
+                        AdminImageUploadField(
+                            label: "正面图片 URL",
+                            placeholder: "可手填，也可直接上传",
+                            folder: "images",
+                            text: $frontImageUrl
+                        )
                         AdminTextField(label: "简介", placeholder: "", text: $description)
 
                         HStack {

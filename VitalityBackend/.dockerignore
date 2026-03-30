@@ -1,0 +1,6 @@
+.git
+.idea
+target
+uploads
+*.log
+.DS_Store
